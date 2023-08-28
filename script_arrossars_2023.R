@@ -52,11 +52,11 @@ retall_baix <- terra::subset(retall_baix, retall_baix$US == "TA")
 
 #Mosaiquem i guardem. 
 tot<-rbind(retall_baix,retall_mont)
-writeVector(tot, "SIGPAC/mosaic_r/mosaicat.shp")
+writeVector(tot, "../../SIGPAC/mosaic_r/mosaicat.shp")
 
 ### AJUNTEM PARCELES AMB PROBLEMES AMB SIGPAC ------------------------------------------------
 #Obrim el SHP i els problemes
-SIGPAC<-vect("SIGPAC/mosaic_R/mosaicat.shp")  #Obrim el SHP amb tot
+SIGPAC<-vect("../../SIGPAC/mosaic_R/mosaicat.shp")  #Obrim el SHP amb tot
 SIGPAC$MUNICIPI = toupper(SIGPAC$MUNICIPI)
 SIGPAC$MUNICIPI[SIGPAC$MUNICIPI == "SANT CARLES DE LA RAPITA"] <- "LA RAPITA"
 SIGPAC$MUNICIPI[SIGPAC$MUNICIPI == "LA RÀPITA"] <- "LA RAPITA"#De vegades es la Ràpita i de vegades Sant Carles de la Ràpita...
