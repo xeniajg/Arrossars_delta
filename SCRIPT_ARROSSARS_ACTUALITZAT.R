@@ -1,65 +1,62 @@
 ###############################################################################################################
 ###############################################################################################################
 ############################ DANYS CAUSATS PER LA POLLA BLAVA AL DELTA DE L'EBRE ##############################
-################################################### 2022 ######################################################
+################################################### 2023 ######################################################
 ###############################################################################################################
 ### CARREGUEM PAQUETS, ESTABLIM DIRECTORI I L'ORDENEM. -------------------------------
 
-paquets<-c('raster','terra','rgdal','dplyr','sp','RStoolbox','spatialEco','reticulate','rgee','stringr')
+paquets<-c('terra','rgdal','dplyr','sp','RStoolbox','spatialEco','reticulate','rgee','stringr', 'mapview')
 lapply(paquets, require, character.only = TRUE)
 rm(paquets)
 
-directori<-"C:/Users/david.munoz/Downloads/PROVA_ARROSSARS"
-
+directori<-"C:/Users/david.munoz/OneDrive - ctfc.cat/ARROSSARS/2023/SCRIPTS/ARROSSARS_DELTA"
 setwd(directori) #Posem aquí la carpeta Arrossars genèrica, i creem les carpetes i subcarpetes: 
-dir.create("MEMORIA")
-dir.create("MODEL")
-dir.create("SENTINEL")
-dir.create("SENTINEL/imatges_crues", recursive = TRUE)
-dir.create("SENTINEL/NDVI", recursive = TRUE)
-dir.create("SENTINEL/PCA_R", recursive = TRUE)
-dir.create("SIGPAC")
-dir.create("SIGPAC/mosaic_R", recursive = TRUE)
-dir.create("SIGPAC/parceles_amb_danys", recursive = TRUE)
-dir.create("trameses")
+dir.create("../../MEMORIA")
+dir.create("../../MODEL")
+dir.create("../../SENTINEL")
+dir.create("../../SENTINEL/imatges_crues", recursive = TRUE)
+dir.create("../../SENTINEL/NDVI", recursive = TRUE)
+dir.create("../../SENTINEL/PCA_R", recursive = TRUE)
+dir.create("../../SIGPAC")
+dir.create("../../SIGPAC/mosaic_R", recursive = TRUE)
+dir.create("../../SIGPAC/parceles_amb_danys", recursive = TRUE)
+dir.create("../../trameses")
 
 ### RETALL MONTSIA ----------------------------------------------------------------
 
-mont<-readOGR("SIGPAC/SIGPAC_22_Montsia_2022_shp/SIGPAC_22_Montsia.shp") #Obrim els SIGPAC directament descarregats. És lent. 
+mont<-vect("C:/Users/david.munoz/OneDrive - ctfc.cat/ARROSSARS/2022/SIGPAC/mosaic_R/TA_MONTSIA.shp") #Obrim els SIGPAC directament descarregats. És lent. 
 #xmin, xmax,ymin,ymax
 x_coord<-c(295363,295367,320614,320614,311013)
 y_coord<-c(4497774,4510180,4511053,4503551,4498274)
 xym <- cbind(x_coord, y_coord)
 
-p = Polygon(xym)
-ps = Polygons(list(p),1)
-sps = SpatialPolygons(list(ps))
-crs(sps)<-crs(mont)
+ambit_montsia<-vect(xym, "polygons")
+crs(ambit_montsia)<-"EPSG:25831"
 
-retall_mont<-crop(mont, sps)
-retall_mont <- subset(retall_mont, US == "TA")
+
+retall_mont<-crop(mont, ambit_montsia)
+retall_mont <- terra::subset(retall_mont, retall_mont$US == "TA")
 ### RETALL BAIX EBRE -------------------------------------------------------------
 
-baix<-readOGR("SIGPAC/SIGPAC_09_BaixEbre_2022_shp/SIGPAC_09_BaixEbre.shp") #Obrim els SIGPAC directament descarregats. És lent. 
+baix<-vect("C:/Users/david.munoz/OneDrive - ctfc.cat/ARROSSARS/2022/SIGPAC/mosaic_R/TA_BAIX_EBRE.shp") #Obrim els SIGPAC directament descarregats. És lent. 
 x_coord<-c(306355,317456,318621,295412,301375)
 y_coord<-c(4520267,4516103,4507170,4507170,4515210)
 xym <- cbind(x_coord, y_coord)
 
-p = Polygon(xym)
-ps = Polygons(list(p),1)
-sps = SpatialPolygons(list(ps))
-crs(sps)<-crs(baix)
+ambit_baix<-vect(xym, "polygons")
+crs(ambit_baix)<-"EPSG:25831"
 
-retall_baix<-crop(baix, sps)
-retall_baix <- subset(retall_baix, US == "TA")
+
+retall_baix<-crop(baix, ambit_baix)
+retall_baix <- terra::subset(retall_baix, retall_baix$US == "TA")
 
 #Mosaiquem i guardem. 
-tot<-raster::bind(retall_baix,retall_mont)
-writeOGR(tot, dsn="SIGPAC/mosaic_R" ,layer="mosaicat", driver = "ESRI Shapefile")
+tot<-rbind(retall_baix,retall_mont)
+writeVector(tot, "SIGPAC/mosaic_r/mosaicat.shp")
 
 ### AJUNTEM PARCELES AMB PROBLEMES AMB SIGPAC ------------------------------------------------
 #Obrim el SHP i els problemes
-SIGPAC<-readOGR("SIGPAC/mosaic_R/mosaicat.shp")  #Obrim el SHP amb tot
+SIGPAC<-vect("SIGPAC/mosaic_R/mosaicat.shp")  #Obrim el SHP amb tot
 SIGPAC$MUNICIPI = toupper(SIGPAC$MUNICIPI)
 SIGPAC$MUNICIPI[SIGPAC$MUNICIPI == "SANT CARLES DE LA RAPITA"] <- "LA RAPITA"
 SIGPAC$MUNICIPI[SIGPAC$MUNICIPI == "LA RÀPITA"] <- "LA RAPITA"#De vegades es la Ràpita i de vegades Sant Carles de la Ràpita...
@@ -78,8 +75,8 @@ trameses$Ha <- gsub(",", ".", trameses$Ha) #replace some "," for "."
 observacions<-as.data.frame(SIGPAC) #Per a consultar mes facilment que tenen de diferent, i aleshores modificar-ho al csv de problemes
 diferent<-setdiff(trameses$COD_PAR, observacions$COD_PAR) #Genera un vector amb els valors que estan a problemes i no a SIGPAC danys. 
 
-SIGPAC_DANYS <- subset(SIGPAC, COD_PAR %in% trameses$COD_PAR)#Dins el SIGPAC, seleccionem els poligons que tinguin danys declarats. 
-writeOGR(SIGPAC_DANYS, dsn="SIGPAC/parceles_amb_danys" ,layer="SIGPAC_danys", driver = "ESRI Shapefile", overwrite_layer = T) 
+SIGPAC_DANYS <- terra::subset(SIGPAC, SIGPAC$COD_PAR %in% trameses$COD_PAR)#Dins el SIGPAC, seleccionem els poligons que tinguin danys declarats. 
+writeVector(SIGPAC_DANYS, "../../SIGPAC/parceles_amb_danys/SIGPAC_danys.shp") 
 
 ### SENTINEL CODI INSTRUCCIONS GEE ----------------------------------------------
 #Abans fèiem a GEE, ara des de R. El codi en JScript està EN UN ARXIU .CSV A LA CARPETA ARROSSARS/SENTINEL. 3 PASSOS:
@@ -88,7 +85,7 @@ writeOGR(SIGPAC_DANYS, dsn="SIGPAC/parceles_amb_danys" ,layer="SIGPAC_danys", dr
 #per trobar fotos sense nuvols, ara ja no serveix. 
 
 #Ara podem fer servir el HUB de Sentinel: https://www.sentinel-hub.com/explore/eobrowser/. Explorar i buscar dates sense núvols, es poden fer
-#fer filtratges. 
+#fer filtratges. 2023: https://apps.sentinel-hub.com/eo-browser/?zoom=11&lat=40.69647&lng=0.56854&themeId=DEFAULT-THEME&visualizationUrl=https%3A%2F%2Fservices.sentinel-hub.com%2Fogc%2Fwms%2Fbd86bcc0-f318-402b-a145-015f85b9427e&datasetId=S2L2A&fromTime=2023-04-30T00%3A00%3A00.000Z&toTime=2023-04-30T23%3A59%3A59.999Z&layerId=1_TRUE_COLOR&demSource3D=%22MAPZEN%22
 
 ### 2.- Aconseguir la llista de les imatges. 
 
@@ -98,7 +95,7 @@ ee_Initialize() #Obrim GEE, caldrà identificar-se la primera vegada
 delta<- ee$Geometry$Rectangle(    #Seleccionem l'area d'estudi
   coords = c(0.565066015548572,40.604362720607654,0.883669531173572,40.80009008801863), proj = "EPSG:4326", geodesic = FALSE)
 
-dataset <- ee$ImageCollection('COPERNICUS/S2_SR')$filterDate('2022-03-01', '2022-10-05')$filterBounds(delta)$
+dataset <- ee$ImageCollection('COPERNICUS/S2_SR')$filterDate('2023-03-01', '2023-08-28')$filterBounds(delta)$
   select(c('B8','B4','B3'))$toBands() #Consultem una serie d'imatges, amb filtre de satèlit i producte, data, àrea i bandes concretes.
 #$filter(ee$Filter$lt('CLOUDY_PIXEL_PERCENTAGE', 1)) Si li afegim això podem filtrar imatges sense núvols, però brutes, inclouen altres 
 #passades, etc. De moment, millor mirar a Sentinel Hub, directament. 
@@ -118,8 +115,10 @@ ve<-ve[!grepl('TYL', ve)]
 #A més a més no ens interessen totes les dates, sinó només aquelles que sabem que tenen una imatge sense núvols. Ho fem amb un match. 
 #Al vector match li posem les dates en format anymesdia. 
 
-match<-(c('20220301','20220425','20220510','20220515','20220530','20220609','20220624','20220704','20220709','20220823','20220902',
-          '20221002'))
+match<-(c('20230301','20230405','20230420','20230430','20230510','20230515','20230614','20230624','20230714','20230823'))
+
+###############################26 DE MARÇ ALGUN NUVOLET. 14 i 24 JUNY una banda com més clara. Està, però, a la llista
+
 llistafinal<-list(length = match) 
 TBF<-vector()
 TCF<-vector()
@@ -144,77 +143,78 @@ llista.r<-list(24)
 
 #El bucle seguent descarrega les imatges. Important haver creat la carpeta al drive (container) i que no tingui ràsters amb el nom dels que
 #volem crear, i que a la carpeta de destí de l'ordinador no hi hagi tampoc cap ràster amb el nom dels ràsters que estem guardant. 
+#Això és lent, triga una hora aprox.
 
-setwd("C:/Users/david.munoz/OneDrive - ctfc.cat/arrossars/SENTINEL/imatges_crues") #Posem directori, així ja es creen les imatges on volem
+setwd("C:/Users/david.munoz/OneDrive - ctfc.cat/arrossars/2023/SENTINEL/imatges_crues") #Posem directori, així ja es creen les imatges on volem
 
 for (i in 1:length(vefinal)) { 
   llista[[i]]<- ee$Image(vefinal_dir[[i]])$select(c('B8', 'B4', 'B3'))$clip(delta)
-  llista.r[[i]] <- ee_as_raster(llista[[i]], via = "drive", container = "arrossars_2022", dsn=paste0(vefinal[[i]]), 
+  llista.r[[i]] <- ee_as_raster(llista[[i]], via = "drive", container = "arrossars_2023", dsn=paste0(vefinal[[i]],".tif"), 
                                 timePrefix = F,  scale = 10)
 }
 
 setwd(directori) #Posem el directori general
 
 ### PCA SENTINEL  ------------------------------------------------------
-d.envs <- "SENTINEL/imatges_crues"
+d.envs <- "../../SENTINEL/imatges_crues"
 BuserRas.paths<- list.files(d.envs, pattern="*TBF.tif", full.names=TRUE)
 CuserRas.paths<- list.files(d.envs, pattern="*TCF.tif", full.names=TRUE)
 
-TBF<-vector("list", 12)
-TCF<-vector("list", 12)
-NDVITBF<-vector("list", 12)
-NDVITCF<-vector("list", 12)
-NDVI<-vector("list", 12)
+TBF<-vector("list", length = length(match))
+TCF<-vector("list", length = length(match))
+NDVITBF<-vector("list", length = length(match))
+NDVITCF<-vector("list", length = length(match))
+NDVI<-vector("list", length = length(match))
 
-for (i in 1:length(TBF)) {                                #Entren les capes, amb brick perque son multibanda, 
-  TBF[[i]]<-raster::brick(BuserRas.paths[[i]])            #i es calcula el NDVI per les dues dallades
-  TCF[[i]]<-raster::brick(CuserRas.paths[[i]])
+for (i in 1:length(TBF)) {                                #Entren les capes, amb brick perque son multibanda,
+  TBF[[i]]<-rast(BuserRas.paths[i])            #i es calcula el NDVI per les dues dallades
+  TCF[[i]]<-rast(CuserRas.paths[i])
   NDVITBF[[i]]<-(TBF[[i]][[1]]-TBF[[i]][[2]])/(TBF[[i]][[1]]+TBF[[i]][[2]])
   NDVITCF[[i]]<-(TCF[[i]][[1]]-TCF[[i]][[2]])/(TCF[[i]][[1]]+TCF[[i]][[2]])
-  NDVI[[i]]<-raster::merge(NDVITBF[[i]], NDVITCF[[i]])
-  writeRaster(NDVI[[i]], paste0("sentinel/NDVI/NDVI_",i,".tif"))
+  NDVI[[i]]<-terra::merge(NDVITBF[[i]], NDVITCF[[i]])
+  writeRaster(NDVI[[i]], paste0("../../SENTINEL/NDVI/NDVI_",i,".tif"))
 }
 
-NDVI<-stack(NDVI[[1]],NDVI[[2]],NDVI[[3]],NDVI[[4]], NDVI[[5]], NDVI[[6]], 
-            NDVI[[7]], NDVI[[8]], NDVI[[9]], NDVI[[10]], NDVI[[11]], NDVI[[12]])
+
+
+
+
+NDVI<-c(NDVI[[1]],NDVI[[2]],NDVI[[3]],NDVI[[4]], NDVI[[5]], NDVI[[6]], 
+            NDVI[[7]], NDVI[[8]], NDVI[[9]], NDVI[[10]]) #posar tots els elements de NDVI.
 
 PCA<-rasterPCA(NDVI, nComp=3)
+#PCA<-prcomp(NDVI, nComp=3)
 
-writeRaster(PCA$map$PC1, "SENTINEL/PCA_R/JUNTPC1.TIF", overwrite=T)
-writeRaster(PCA$map$PC2, "SENTINEL/PCA_R/JUNTPC2.TIF", overwrite=T)
-writeRaster(PCA$map$PC3, "SENTINEL/PCA_R/JUNTPC3.TIF", overwrite=T)
-
-plotPCA <- lapply(1:3, function(x) ggR(PCA$map, x, geom_raster = TRUE)) #plotegem. 
-grid.arrange(plotPCA[[1]],plotPCA[[2]], plotPCA[[3]], ncol=2)
+writeRaster(PCA$map$PC1, "../../SENTINEL/PCA_R/JUNTPC1.TIF", overwrite=T)
+writeRaster(PCA$map$PC2, "../../SENTINEL/PCA_R/JUNTPC2.TIF", overwrite=T)
+writeRaster(PCA$map$PC3, "../../SENTINEL/PCA_R/JUNTPC3.TIF", overwrite=T)
 
 ### MODEL I RETALL EN PARCELES AFECTADES  ------------------------------------------------------
 
-PC1<-raster("SENTINEL/PCA_R/JUNTPC1.TIF")
-PC2<-raster("SENTINEL/PCA_R/JUNTPC2.TIF")
-PC3<-raster("SENTINEL/PCA_R/JUNTPC3.TIF")
+PC1<-rast("../../SENTINEL/PCA_R/JUNTPC1.TIF")
+PC2<-rast("../../SENTINEL/PCA_R/JUNTPC2.TIF")
+PC3<-rast("../../SENTINEL/PCA_R/JUNTPC3.TIF")
 PC<-c(PC1,PC2,PC3)
 
 danys2022 <- (1/(1+exp(-(2.5760*PC[[1]] - 0.3788*PC[[2]] + 0.8904*PC[[3]] - 4.1929))))
-writeRaster(danys2022, "model/danys_2022_tot.tif", overwrite=T)
+writeRaster(danys2022, "../../model/danys_2022_tot.tif", overwrite=T)
 
 ################ Mascara del model en les parceles afectades
-SIGPAC_DANYS<-readOGR("SIGPAC/parceles_amb_danys/SIGPAC_DANYS.shp")
-SIGPAC_DANYS<-vect(SIGPAC_DANYS)
+SIGPAC_DANYS<-vect("../../SIGPAC/parceles_amb_danys/SIGPAC_DANYS.shp")
 SIGPAC_DANYS<-terra::project(SIGPAC_DANYS, crs(PC1))
-SIGPAC_DANYS<- buffer(SIGPAC_DANYS,width = -7)  #Creem un buffer negatiu de 7 metres, aixi nomes ens 
-                                                #quedem amb els pixels que estiguin dins dels poligons.
+SIGPAC_DANYS<- buffer(SIGPAC_DANYS,width = -7)  #Creem un buffer negatiu de 7 metres, aixi nomes ens #quedem amb els pixels que estiguin dins dels poligons.
 
-model_retallat<-rast(danys2022)
-model_retallat<-terra::mask(model_retallat, SIGPAC_DANYS, touches=F)
-writeRaster(model_retallat, "MODEL/danys_2022_retall.tif", overwrite=T)
+
+model_retallat<-terra::mask(danys2022, SIGPAC_DANYS, touches=F)
+writeRaster(model_retallat, "../../MODEL/danys_2022_retall.tif", overwrite=T)
 
 ### SELECCIO DE QUARTILS  ------------------------------------------------------
-SIGPAC_DANYS<-readOGR("SIGPAC/parceles_amb_danys/SIGPAC_DANYS.shp")
-SIGPAC_DANYS<-vect(SIGPAC_DANYS)
+#SIGPAC_DANYS<-readOGR("SIGPAC/parceles_amb_danys/SIGPAC_DANYS.shp")
+#SIGPAC_DANYS<-vect(SIGPAC_DANYS)
 dfSIGPAC<-as.data.frame(SIGPAC_DANYS)
 
-model_retallat<-raster("model/danys_2022_retall.tif")
-model_retallat<-rast(model_retallat)
+#model_retallat<-raster("model/danys_2022_retall.tif")
+#model_retallat<-rast(model_retallat)
 
 q25 <- function(x, p=0.25, na.rm = TRUE) { quantile(x, p, na.rm = na.rm) }
 q10 <- function(x, p=0.10, na.rm = TRUE) { quantile(x, p, na.rm = na.rm) }
@@ -224,26 +224,44 @@ model_q25<-terra::extract(x = model_retallat, y = SIGPAC_DANYS, fun = "q25")
 model_q10<-terra::extract(x = model_retallat, y = SIGPAC_DANYS, fun = "q10")
 model_q05<-terra::extract(x = model_retallat, y = SIGPAC_DANYS, fun = "q05")
 
+
+
+
+
+# Modified q25 function to work with terra::extract
+q25 <- function(x, na.rm = TRUE) { quantile(x, probs = 0.25, na.rm = T)}
+q10 <- function(x, na.rm = TRUE) { quantile(x, probs = 0.1, na.rm = T)}
+q05 <- function(x, na.rm = TRUE) { quantile(x, probs = 0.05, na.rm = T)}
+
+# Use the modified q25 function with terra::extract
+model_q25 <- extract(x = model_retallat, y = SIGPAC_DANYS, fun = q25)
+model_q10 <- extract(x = model_retallat, y = SIGPAC_DANYS, fun = q10)
+model_q05 <- extract(x = model_retallat, y = SIGPAC_DANYS, fun = q05)
+
+
+
+
+
 #Ho ajuntem tot en una taula i canviem noms. 
 quartils<-inner_join(model_q05, model_q10, by="ID")
 quartils<-inner_join(quartils, model_q25, by="ID")
 quartils$ID<-dfSIGPAC$COD_PAR
 names(quartils)<-c("COD_PAR","Q05","Q10","Q25")
 COD_PAR<-quartils[,1]
-write.csv(quartils, "model/quartils_poligons_parceles.csv", sep=";", dec = ",",row.names = TRUE,col.names = TRUE)
+write.csv(quartils, "../../model/quartils_poligons_parceles.csv", sep=";", dec = ",",row.names = TRUE,col.names = TRUE)
 
 ### AREA AFECTADA PER CADA QUARTIL EN CADA PARCELA ------------------------------------------------------
-quartils<-read.csv("MODEL/quartils_poligons_parceles.csv")
+quartils<-read.csv("../../MODEL/quartils_poligons_parceles.csv")
 qquartils<-quartils[,3:5]
-model_retallat<-raster("model/danys_2022_retall.tif")
-SIGPAC_DANYS<-readOGR("SIGPAC/parceles_amb_danys/SIGPAC_DANYS.shp")
+model_retallat<-rast("../../model/danys_2022_retall.tif")
+SIGPAC_DANYS<-vect("../../SIGPAC/parceles_amb_danys/SIGPAC_DANYS.shp")
 crs(SIGPAC_DANYS)<-crs(model_retallat)
 
 df <- data.frame(matrix(nrow = nrow(dfSIGPAC), ncol = 3))  #Generem la matriu on s'emmagatzemaran els resultats.
 
 for (i in 1:nrow(df)){  #fem una mascara per cada poligon amb els resultats del model. 
   a <- assign(paste("pol", i, sep = ""), SIGPAC_DANYS[i,])
-  mascara<-raster::mask(x=model_retallat, mask=a)
+  mascara<-mask(model_retallat, a)
   mascara<-crop(mascara, a)
   c <- vector()
   
