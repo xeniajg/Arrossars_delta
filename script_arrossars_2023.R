@@ -86,6 +86,7 @@ writeVector(SIGPAC_DANYS, "../../SIGPAC/parceles_amb_danys/SIGPAC_danys.shp")
 
 #Ara podem fer servir el HUB de Sentinel: https://www.sentinel-hub.com/explore/eobrowser/. Explorar i buscar dates sense núvols, es poden fer
 #fer filtratges. 2023: https://apps.sentinel-hub.com/eo-browser/?zoom=11&lat=40.69647&lng=0.56854&themeId=DEFAULT-THEME&visualizationUrl=https%3A%2F%2Fservices.sentinel-hub.com%2Fogc%2Fwms%2Fbd86bcc0-f318-402b-a145-015f85b9427e&datasetId=S2L2A&fromTime=2023-04-30T00%3A00%3A00.000Z&toTime=2023-04-30T23%3A59%3A59.999Z&layerId=1_TRUE_COLOR&demSource3D=%22MAPZEN%22
+#D'aquí traiem les dates que posarem unes línies més a sota. 
 
 ### 2.- Aconseguir la llista de les imatges. 
 
@@ -113,7 +114,7 @@ ve<-ve[!grepl('TCE', ve)]
 ve<-ve[!grepl('TYL', ve)]
 
 #A més a més no ens interessen totes les dates, sinó només aquelles que sabem que tenen una imatge sense núvols. Ho fem amb un match. 
-#Al vector match li posem les dates en format anymesdia. 
+#Al vector match li posem les dates en format anymesdia. Aquestes dates són les que venen de veure quins dies no hi havia núvols.
 
 match<-(c('20230301','20230405','20230420','20230430','20230510','20230515','20230614','20230624','20230714','20230823'))
 
