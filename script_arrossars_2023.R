@@ -118,7 +118,7 @@ ve<-ve[!grepl('TYL', ve)]
 
 match<-(c('20230301','20230405','20230420','20230430','20230510','20230515','20230614','20230624','20230714','20230823'))
 
-###############################26 DE MARÇ ALGUN NUVOLET. 14 i 24 JUNY una banda com més clara. Està, però, a la llista
+###############################
 
 llistafinal<-list(length = match) 
 TBF<-vector()
