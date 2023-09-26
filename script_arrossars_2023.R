@@ -116,7 +116,7 @@ ve<-ve[!grepl('TYL', ve)]
 #A més a més no ens interessen totes les dates, sinó només aquelles que sabem que tenen una imatge sense núvols. Ho fem amb un match. 
 #Al vector match li posem les dates en format anymesdia. Aquestes dates són les que venen de veure quins dies no hi havia núvols.
 
-match<-(c('20230301','20230405','20230420','20230430','20230510','20230515','20230614','20230624','20230714','20230823'))
+match<-(c('20230301','20230405','20230420','20230430','20230510','20230515','20230614','20230624','20230714','20230823', '20230922'))
 
 ###############################
 
