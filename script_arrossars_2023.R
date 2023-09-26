@@ -96,7 +96,7 @@ ee_Initialize() #Obrim GEE, caldrà identificar-se la primera vegada
 delta<- ee$Geometry$Rectangle(    #Seleccionem l'area d'estudi
   coords = c(0.565066015548572,40.604362720607654,0.883669531173572,40.80009008801863), proj = "EPSG:4326", geodesic = FALSE)
 
-dataset <- ee$ImageCollection('COPERNICUS/S2_SR')$filterDate('2023-03-01', '2023-08-28')$filterBounds(delta)$
+dataset <- ee$ImageCollection('COPERNICUS/S2_SR')$filterDate('2023-03-01', '2023-09-25')$filterBounds(delta)$
   select(c('B8','B4','B3'))$toBands() #Consultem una serie d'imatges, amb filtre de satèlit i producte, data, àrea i bandes concretes.
 #$filter(ee$Filter$lt('CLOUDY_PIXEL_PERCENTAGE', 1)) Si li afegim això podem filtrar imatges sense núvols, però brutes, inclouen altres 
 #passades, etc. De moment, millor mirar a Sentinel Hub, directament. 
@@ -173,7 +173,7 @@ for (i in 1:length(TBF)) {                                #Entren les capes, amb
   NDVITBF[[i]]<-(TBF[[i]][[1]]-TBF[[i]][[2]])/(TBF[[i]][[1]]+TBF[[i]][[2]])
   NDVITCF[[i]]<-(TCF[[i]][[1]]-TCF[[i]][[2]])/(TCF[[i]][[1]]+TCF[[i]][[2]])
   NDVI[[i]]<-terra::merge(NDVITBF[[i]], NDVITCF[[i]])
-  writeRaster(NDVI[[i]], paste0("../../SENTINEL/NDVI/NDVI_",i,".tif"))
+  writeRaster(NDVI[[i]], paste0("../../SENTINEL/NDVI/NDVI_",i,".tif"), overwrite=T)
 }
 
 
@@ -181,7 +181,7 @@ for (i in 1:length(TBF)) {                                #Entren les capes, amb
 
 
 NDVI<-c(NDVI[[1]],NDVI[[2]],NDVI[[3]],NDVI[[4]], NDVI[[5]], NDVI[[6]], 
-            NDVI[[7]], NDVI[[8]], NDVI[[9]], NDVI[[10]]) #posar tots els elements de NDVI.
+            NDVI[[7]], NDVI[[8]], NDVI[[9]], NDVI[[10]], NDVI[[11]]) #posar tots els elements de NDVI.
 
 PCA<-rasterPCA(NDVI, nComp=3)
 #PCA<-prcomp(NDVI, nComp=3)
